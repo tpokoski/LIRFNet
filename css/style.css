@@ -62,3 +62,11 @@ div.tooltip {
   width: 50%;
   margin: 0 auto;
 }
+
+#image-container  img{
+  width: 800px;
+  height: auto;
+}
+.content-container {
+  display: flex;
+}
