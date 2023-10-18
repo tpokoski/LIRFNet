@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width">
+		<title>LIRF Calendar</title>
+
+		<!--put your external stylesheet links here-->
+		<link rel="stylesheet" href="css/style.css">
+		<link rel="stylesheet" href="css/bootstrap.css">
+		<!--[if IE<9]>
+			<link rel="stylesheet" href="css/style.ie.css">
+		<![endif]-->
+	</head>
+
+	<body>
+
+		<!--put your external script links here-->
+		
+		
+		<!--put your initial page content here-->
+		<nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+			<div class="container-fluid">
+			  <a class="navbar-brand" href="index.html">LIRF</a>
+			  <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarColor02" aria-controls="navbarColor02" aria-expanded="false" aria-label="Toggle navigation">
+				<span class="navbar-toggler-icon"></span>
+			  </button>
+			  <div class="collapse navbar-collapse" id="navbarColor02">
+				<ul class="navbar-nav me-auto">
+  
+				  <li class="nav-item">
+					<a class="nav-link" href="about.html">ABOUT</a>
+				  </li>
+				  <li class="nav-item">
+					<a class="nav-link" href="pyfao.html">pyFAO56</a>
+				  </li>
+				  <li class="nav-item">
+					<a class="nav-link" href="historical.html">HISTORICAL DATA</a>
+				  </li>
+				  <li class="nav-item">
+					<a class="nav-link" href="CALENDAR.html">CALENDAR</a>
+				  </li>
+				</ul>
+			  </div>
+			</div>
+		  </nav>
+		  <div class="jumbotron">
+			  <div class="container">
+			  <div class="jumbotron text-center">
+				  <h1 class = "display-4">Calendar</h1>
+				  <p class = "lead">
+					The plan with this page is to have an online calendar of all things happening at LIRF:
+					Growth Stage, Measurements, Irrigations, Rainfall Events, etc. 
+				  </p>
+				  <hr class = "my-4">
+			  </div>
+			  </div>
+		</div>
+		<div id="calendar">
+			<div id="calendar-header">
+			  <button id="prev-month"><<</button>
+			  <h1 id="month-year"></h1>
+			  <button id="next-month">>></button>
+			</div>
+			<table id="calendar-body">
+			  <thead>
+				<tr>
+				  <th>Sun</th>
+				  <th>Mon</th>
+				  <th>Tue</th>
+				  <th>Wed</th>
+				  <th>Thu</th>
+				  <th>Fri</th>
+				  <th>Sat</th>
+				</tr>
+			  </thead>
+			  <tbody id="calendar-dates"></tbody>
+			</table>
+		  </div>
+		  
+
+		<script src="https://d3js.org/d3.v7.min.js"></script>
+		<script type="text/javascript" src="js/calendar.js"></script>
+
+	</body>
+</html>
