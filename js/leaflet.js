@@ -16,7 +16,7 @@
     };
 
     info.update = function(props) {
-        const contents = props ? `<b>${props.Plot}</b><br />${props.irrigation} treatment` : 'Hover over a plot';
+        const contents = props ? `<b>${props.TrtmPlotID}</b><br />${props.irrigTrtm} treatment` : 'Hover over a plot';
         this._div.innerHTML = `<h4>LIRF</h4>${contents}`;
     };
 
@@ -40,7 +40,7 @@
         attribution: "Terrestris"
     }).addTo(map);
 
-    const lineast = L.geoJson(lirfgeo, {style:styleFunc, onEachFeature}).addTo(map);
+    const lineast = L.geoJson(plots2012, {style:styleFunc, onEachFeature}).addTo(map);
    
     var baseLayers = {
         "Map": imageryLayer,
@@ -55,14 +55,12 @@
 
     function getColor(d) {
         console.log(d)
-        return d === 'FF' ? '#FFFF00' :
-               d === "EL"  ? '#C65911' :
-               d === "SF"  ? '#BF8F00' :
-               d === "SL"  ? '#FCE4D6' :
-               d === "DH"  ? '#00B0F0' :
-               d === "DL"   ? '#B4C6E7' :
-               d === "RH"   ? '#548235' :
-               d === "RL"   ? '#A9D08E' :
+        return d === 1  ? '#FFFF00' :
+               d === 2  ? '#C65911' :
+               d === 3  ? '#BF8F00' :
+               d === 4  ? '#FCE4D6' :
+               d === 5  ? '#00B0F0' :
+               d === 6  ? '#B4C6E7' :
                           '#FFEDA0';
     }
     function styleFunc(feature) {
@@ -72,7 +70,7 @@
             opacity: 0.5,
             color: '#666',
             dashArray: '3',
-            fillColor: getColor(feature.properties.irrigation)
+            fillColor: getColor(feature.properties.irrigTrtm)
         };
     }
 
