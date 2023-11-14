@@ -118,6 +118,7 @@ app.layout = dbc.Container([
     [
         Input(component_id='year_select', component_property='value'),
         Input(component_id='data_select', component_property='value'),
+        
     ]
 )
 def update_range(selected_year, selected_data):
@@ -141,9 +142,10 @@ def update_range(selected_year, selected_data):
         Input(component_id='data_select', component_property='value'),
         Input(component_id='date_slider', component_property='value'),
         Input(component_id='year_select', component_property='value'),
+        Input(component_id='chart', component_property='clickData')
     ]
 )
-def update_figure(selected_data,selected_date,selected_year):
+def update_figure(selected_data,selected_date,selected_year, clickData):
     query = f"""
             SELECT * FROM "{selected_data}"
             WHERE Year = {selected_year}    
@@ -153,6 +155,9 @@ def update_figure(selected_data,selected_date,selected_year):
     dates_test = df['Date'].drop_duplicates()
     dates_test = dates_test.tolist()
     filterdf = df[df['Date'] == dates_test[selected_date]]
+    
+
+    
     fig = px.choropleth_mapbox(filterdf, 
                     geojson=geojson,
                     locations='Plot',
@@ -175,7 +180,14 @@ def update_figure(selected_data,selected_date,selected_year):
                 ]
             }
         ])
-    return fig
+    if clickData is not None:
+        curveNumber = clickData["points"][0]['curveNumber']
+        print(curveNumber)
+        traces = fig['data']
+        fig['data'][curveNumber]['marker']['color'] = "#FFFFFF"
+        return fig
+    else:
+        return fig
 
 @app.callback(
     Output(component_id='chart', component_property='figure'),
@@ -190,22 +202,9 @@ def update_chart(selected_data, selected_year):
             WHERE Year = {selected_year}    
             """
     df = query_db(query)
-    print(selected_data)
     col = column_select(selected_data)
-    print(col)
     fig = px.line(df, x='Date', y=col, color='Plot')
     return fig
-
-
-# @app.callback(
-#     [
-#         Output(component_id='chart', component_property='figure'),
-#         Output(component_id='map', component_property='figure'),
-#     ],
-#     Input('basic-interactions','clickData')
-# )
-# def click_opacity(clickData):
-#     print(clickData)
 
 
 if __name__ == '__main__':
