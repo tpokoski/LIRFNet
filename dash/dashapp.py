@@ -8,12 +8,12 @@ import sqlite3
 import dash_bootstrap_components as dbc
 import datetime
 
-app = dash.Dash(external_stylesheets=[dbc.themes.DARKLY])
+app = dash.Dash(external_stylesheets=[dbc.themes.DARKLY], use_pages=True)
 
 # Bring in the data
 # -------------------------------------------------------------
 # First the geojson
-with open('LIRF.json') as filepath:
+with open('modified_LIRF.json') as filepath:
     geojson = json.load(filepath)
 
 # Now bring in a SQLite table as a dataframe
@@ -31,11 +31,42 @@ def column_select(selected_data):
         column = 'LAI'
     elif selected_data == 'Plant Ht by Plot':
         column='Plant_Ht'
-    
+    elif selected_data == 'SWC_15':
+        column='SWC_15'
+    elif selected_data == 'SWC_30':
+        column='SWC_30'
+    elif selected_data == 'SWC_60':
+        column='SWC_60'
+    elif selected_data == 'SWC_90':
+        column='SWC_90'
+    elif selected_data == 'SWC_120':
+        column='SWC_120'
+    elif selected_data == 'SWC_150':
+        column='SWC_150'
+    elif selected_data == 'SWC_200':
+        column='SWC_200'
+    elif selected_data == 'SWD_RZ':
+        column='SWD_RZ'
+               
     return column
 
 # Setting up the layout
 # --------------------------------------------------------------
+sidebar = dbc.Nav(
+    [
+        dbc.NavLink(
+            [
+                html.Div(page['name'], className='ms-2'),
+            ],
+            href=page['path'],
+            active='exact',            
+        )
+        for page in dash.page_registry.values()
+    ],
+    vertical=True,
+    pills=True,
+    className='bg-light',
+)
 controls = dbc.Card(
     [
         dbc.CardHeader("Data Filters"),
@@ -51,21 +82,26 @@ controls = dbc.Card(
                             ],
                             value=2012,
                             inline=True
+                        )
+                    ]
+                ),
+                dbc.CardGroup(
+                    [
+                        dbc.RadioItems(
+                            id='treatment_select',
+                            options=[
+                                {'label': 'Plot', 'value': 0},
+                                {'label': 'Treatment', 'value': 1}                                
+                            ],
+                            value=0,
+                            inline=True
                         ),
                     ]
                 ),
                 dbc.CardGroup(
                     [
                         dbc.Label("Data Selection"),
-                        dbc.Select(
-                            id='data_select',
-                            options=[
-                                {"label": "LAI", "value": "LAI by Plot"},
-                                {"label": "Plant Height", "value": "Plant Ht by Plot"},
-                                {"label": "Canopy Cover", "value": "Canopy Cover by Plot"}                     
-                            ],
-                            value="LAI by Plot"
-                        ),
+                        dbc.Select(id='data_select'),
                     ]
                 ),
             ]
@@ -74,24 +110,24 @@ controls = dbc.Card(
 )
 
 slider_control = dbc.Card(
-            html.Div(
             [
-                dbc.Label("Date Select"),
-                dcc.Slider(
-                    id='date_slider',
-                    min=0,
-                    max=10,
-                    
-                    value=0,
+                dbc.CardHeader("Date Select"),
+                dbc.CardBody(
+                    dcc.Slider(
+                        id='date_slider',
+                        min=0,
+                        max=10,                        
+                        value=0,
                 ),
+                )
+
             ]
-        ),
 )
 app.layout = dbc.Container(
     [
         html.H1('LIRF 2012 Corn Data'),
         html.Div("Displaying the 2012 Corn Canopy Cover"),
-        html.Br(),
+        
         dbc.Row(
             [
                 dbc.Col(controls, md=6, xl=4),  # Adjust the size as needed for the controls
@@ -129,14 +165,21 @@ app.layout = dbc.Container(
     [
         Input(component_id='year_select', component_property='value'),
         Input(component_id='data_select', component_property='value'),
+        Input(component_id='treatment_select', component_property='value'),
         
     ]
 )
-def update_range(selected_year, selected_data):
-    query = f"""
-            SELECT * FROM "{selected_data}"
-            WHERE Year = {selected_year}    
-            """
+def update_range(selected_year, selected_data, trt):
+    if trt == 0:
+        query = f"""
+                SELECT * FROM "{selected_data}"
+                WHERE Year = {selected_year}    
+                """
+    else: 
+        query = f"""
+                SELECT * FROM "Water Balance ET"
+                WHERE (Year = {selected_year} AND "{selected_data}" IS NOT NULL)    
+                """
     df = query_db(query)
     df['Date'] = pd.to_datetime(df['Date'])
     df['Date'] = df['Date'].dt.strftime('%m/%d')
@@ -153,33 +196,56 @@ def update_range(selected_year, selected_data):
         Input(component_id='data_select', component_property='value'),
         Input(component_id='date_slider', component_property='value'),
         Input(component_id='year_select', component_property='value'),
+        Input(component_id='treatment_select', component_property='value'),
         Input(component_id='chart', component_property='clickData')
     ]
 )
-def update_figure(selected_data,selected_date,selected_year, clickData):
-    query = f"""
-            SELECT * FROM "{selected_data}"
-            WHERE Year = {selected_year}    
-            """
-    df = query_db(query)
-    col = column_select(selected_data)
-    dates_test = df['Date'].drop_duplicates()
-    dates_test = dates_test.tolist()
-    filterdf = df[df['Date'] == dates_test[selected_date]]
+def update_figure(selected_data,selected_date,selected_year,trt_plt, clickData):
+    if trt_plt == 0:
+        query = f"""
+                SELECT * FROM "{selected_data}"
+                WHERE Year = {selected_year}    
+                """
+        df = query_db(query)
+        col = column_select(selected_data)
+        dates_test = df['Date'].drop_duplicates()
+        dates_test = dates_test.tolist()
+        filterdf = df[df['Date'] == dates_test[selected_date]]
+        locat='Plot'
+        fig = px.choropleth_mapbox(filterdf, 
+                        geojson=geojson,
+                        locations= locat,
+                        featureidkey='properties.TrtmPlotID',
+                        color=col,
+                        range_color=[df[col].min(), df[col].max()],
+                        color_continuous_scale="rdylgn",
+                        mapbox_style="carto-positron",
+                        center = {"lat": 40.4486, "lon": -104.6368},
+                        zoom=16.3
+                        )
+    else:
+        query = f"""
+                SELECT * FROM "Water Balance ET"
+                WHERE (Year = {selected_year} AND "{selected_data}" IS NOT NULL)    
+                """
+        df = query_db(query)
+        col = column_select(selected_data)
+        dates_test = df['Date'].drop_duplicates()
+        dates_test = dates_test.tolist()
+        filterdf = df[df['Date'] == dates_test[selected_date]]
+        locat="Plot"
     
-
-    
-    fig = px.choropleth_mapbox(filterdf, 
-                    geojson=geojson,
-                    locations='Plot',
-                    featureidkey='properties.TrtmPlotID',
-                    color=col,
-                    range_color=[df[col].min(), df[col].max()],
-                    color_continuous_scale="rdylgn",
-                    mapbox_style="carto-positron",
-                    center = {"lat": 40.4486, "lon": -104.6368},
-                    zoom=16.3
-                    )
+        fig = px.choropleth_mapbox(filterdf, 
+                        geojson=geojson,
+                        locations= locat,
+                        featureidkey='properties.TrtmPlotID',
+                        color=col,
+                        range_color=[df[col].min(), df[col].max()],
+                        color_continuous_scale="rdylgn",
+                        mapbox_style="carto-positron",
+                        center = {"lat": 40.4486, "lon": -104.6368},
+                        zoom=16.3
+                        )
     fig.update_layout(
         mapbox_layers=[
             {
@@ -205,17 +271,57 @@ def update_figure(selected_data,selected_date,selected_year, clickData):
     [
         Input(component_id='data_select', component_property='value'),
         Input(component_id='year_select', component_property='value'),
+        Input(component_id='treatment_select', component_property='value'),
     ]
 )
-def update_chart(selected_data, selected_year):
-    query = f"""
-            SELECT * FROM "{selected_data}"
-            WHERE Year = {selected_year}    
-            """
-    df = query_db(query)
-    col = column_select(selected_data)
-    fig = px.line(df, x='Date', y=col, color='Plot')
+def update_chart(selected_data, selected_year, trt):
+    if trt == 0:
+        query = f"""
+                SELECT * FROM "{selected_data}"
+                WHERE Year = {selected_year}    
+                """
+        df = query_db(query)
+        col = column_select(selected_data)
+        fig = px.line(df, x='Date', y=col, color='Plot')
+    else:
+        query = f"""
+        SELECT * FROM "Water Balance ET"
+        WHERE (Year = {selected_year} AND "{selected_data}" IS NOT NULL)    
+        """
+        df = query_db(query)
+        col = column_select(selected_data)
+        fig = px.line(df, x='Date', y=col, color='Trt_code')
     return fig
+
+@app.callback(
+    [
+        Output(component_id='data_select', component_property='options'),
+        Output(component_id='data_select', component_property='value'),
+    ],
+    Input(component_id='treatment_select', component_property='value')
+)
+def update_dropdown(selected_treatment):
+    if selected_treatment ==0:
+        options=[
+            {"label": "LAI", "value": "LAI by Plot"},
+            {"label": "Plant Height", "value": "Plant Ht by Plot"},
+            {"label": "Canopy Cover", "value": "Canopy Cover by Plot"}                     
+        ]
+        value="LAI by Plot"
+    elif selected_treatment == 1:   
+        options=[
+            {"label": "SWC_15", "value": "SWC_15"},
+            {"label": "SWC_30", "value": "SWC_30"}, 
+            {"label": "SWC_60", "value": "SWC_60"}, 
+            {"label": "SWC_90", "value": "SWC_90"}, 
+            {"label": "SWC_120", "value": "SWC_120"}, 
+            {"label": "SWC_150", "value": "SWC_150"}, 
+            {"label": "SWC_200", "value": "SWC_200"},                     
+            {"label": "SWD_RZ", "value": "SWD_RZ"}, 
+        ]
+        value="SWC_15"
+    return options, value
+
 
 
 if __name__ == '__main__':
