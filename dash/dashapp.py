@@ -8,7 +8,7 @@ import sqlite3
 import dash_bootstrap_components as dbc
 import datetime
 
-app = dash.Dash(external_stylesheets=[dbc.themes.FLATLY])
+app = dash.Dash(external_stylesheets=[dbc.themes.DARKLY])
 
 # Bring in the data
 # -------------------------------------------------------------
@@ -38,36 +38,41 @@ def column_select(selected_data):
 # --------------------------------------------------------------
 controls = dbc.Card(
     [
-        html.Div(
+        dbc.CardHeader("Data Filters"),
+        dbc.CardBody(
             [
-                dbc.Label("Year"),
-                dcc.RadioItems(
-                    id="year_select",
-                    options=[
-                        {"label": "2012", "value": 2012},
-                        {"label": '2013', "value": 2013}
-                    ],
-                    value=2012,
-                    inline=True                    
+                dbc.CardGroup(
+                    [
+                        dbc.RadioItems(
+                            id="year_select",
+                            options=[
+                                {"label": "2012", "value": 2012},
+                                {"label": '2013', "value": 2013}
+                            ],
+                            value=2012,
+                            inline=True
+                        ),
+                    ]
+                ),
+                dbc.CardGroup(
+                    [
+                        dbc.Label("Data Selection"),
+                        dbc.Select(
+                            id='data_select',
+                            options=[
+                                {"label": "LAI", "value": "LAI by Plot"},
+                                {"label": "Plant Height", "value": "Plant Ht by Plot"},
+                                {"label": "Canopy Cover", "value": "Canopy Cover by Plot"}                     
+                            ],
+                            value="LAI by Plot"
+                        ),
+                    ]
                 ),
             ]
         ),
-        html.Div(
-            [
-                dbc.Label("Data Selection"),
-                dcc.Dropdown(
-                    id='data_select',
-                    options=[
-                        {"label": "LAI", "value": "LAI by Plot"},
-                        {"label": "Plant Height", "value": "Plant Ht by Plot"},
-                        {"label": "Canopy Cover", "value": "Canopy Cover by Plot"}                     
-                    ],
-                    value="LAI by Plot"
-                 ),
-            ]),
     ],
-    body=True,
 )
+
 slider_control = dbc.Card(
             html.Div(
             [
@@ -82,30 +87,36 @@ slider_control = dbc.Card(
             ]
         ),
 )
-app.layout = dbc.Container([
-    html.H1('LIRF 2012 Corn Data'),
-    html.Div("""
-             Displaying the 2012 Corn Canopy Cover
-             """),
-    html.Br(),
-    dbc.Row(
-        [
-            dbc.Col(slider_control, md=8),
-            dbc.Col(controls, md=4)
-        ],
-        align='center',
-    ),
-    dbc.Row(
-        [
-            dbc.Col(dcc.Graph(id='map'), md=8),
-            dbc.Col(dcc.Graph(id='chart'), md=4)
-            
+app.layout = dbc.Container(
+    [
+        html.H1('LIRF 2012 Corn Data'),
+        html.Div("Displaying the 2012 Corn Canopy Cover"),
+        html.Br(),
+        dbc.Row(
+            [
+                dbc.Col(controls, md=6, xl=4),  # Adjust the size as needed for the controls
+                dbc.Col(slider_control, md=6, xl=8),  # Adjust the size as needed for the slider
+            ],
+            align='center',
+        ),
+        dbc.Row(
+            [
+                dbc.Col(dcc.Graph(id='map'), md=12),  # Map figure takes full width
+            ],
+            align='center',
+            className="mb-3",  # Add a margin bottom for spacing
+        ),
+        dbc.Row(
+            [
+                dbc.Col(dcc.Graph(id='chart'), md=12),  # Chart figure takes full width
             ],
             align='center',
         ),
     ],
     fluid=True,
 )
+
+
 
 #---------------------------------------------------
 # Callback functions
