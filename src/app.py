@@ -9,6 +9,8 @@ import dash_bootstrap_components as dbc
 import datetime
 
 app = dash.Dash(external_stylesheets=[dbc.themes.DARKLY], use_pages=True)
+# Line needed for deployment
+server = app.server
 
 # Bring in the data
 # -------------------------------------------------------------
