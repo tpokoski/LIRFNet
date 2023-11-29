@@ -33,31 +33,31 @@ sidebar = dbc.Nav(
 app.layout = dbc.Container(
     [
         dbc.Row(
-            [
-                html.H1('Limited Irrigation Research Farm'),
-                html.Br(),
-            ],
-            align='center',
+            dbc.Col(
+                html.H1('Limited Irrigation Research Farm', className='text-center'),
+                width=12  # Make the column span the full width
+            ),
+            justify="center",  # Center the column
+            className="mb-4"  # Add some margin at the bottom for spacing
         ),
         
         dbc.Row(
             [
-              dbc.Col(
-                  [
-                      sidebar
-                  ], xs=4, sm=4, md=2, lg=2, xl=2, xxl=2
-              ),
-              dbc.Col(
-                  [
-                      dash.page_container
-                  ], xs=8, sm=8, md=10, lg=10, xl=10, xxl=10
-              )  
+                dbc.Col(
+                    sidebar, 
+                    xs=4, sm=4, md=2, lg=2, xl=2, xxl=2
+                ),
+                dbc.Col(
+                    dash.page_container, 
+                    xs=8, sm=8, md=10, lg=10, xl=10, xxl=10
+                )  
             ]
         )
 
     ],
     fluid=True,
 )
+
 
 
 

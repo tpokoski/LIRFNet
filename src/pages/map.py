@@ -119,10 +119,13 @@ layout = dbc.Container(
         ),
 
         dbc.Row(
-            [
-                dbc.Col(controls, md=4, xl=4),  # Controls on the left
-                dbc.Col(dcc.Graph(id='map'), md=8, xl=8),  # Map on the right
-            ],
+                html.Div(  # Flex container
+                [
+                    dbc.Col(html.Div(controls, style={"display": "flex", "flexDirection": "column", "flexGrow": 1}), md=4, xl=4),  # Flex item for controls
+                    dbc.Col(dcc.Graph(id='map', style={"display": "flex", "flexDirection": "column", "flexGrow": 1}), md=8, xl=8),  # Flex item for map
+                ],
+                style={"display": "flex", "flexDirection": "row", 'height': '100%'}
+            ),
             align='center',
             className="mb-3",  # Add a margin bottom for spacing
         ),
@@ -197,17 +200,6 @@ def update_figure(selected_data,selected_date,selected_year,trt_plt, clickData):
         dates_test = dates_test.tolist()
         filterdf = df[df['Date'] == dates_test[selected_date]]
         locat='Plot'
-        fig = px.choropleth_mapbox(filterdf, 
-                        geojson=geojson,
-                        locations= locat,
-                        featureidkey='properties.TrtmPlotID',
-                        color=col,
-                        range_color=[df[col].min(), df[col].max()],
-                        color_continuous_scale="rdylgn",
-                        mapbox_style="carto-positron",
-                        center = {"lat": 40.4486, "lon": -104.6368},
-                        zoom=16.3
-                        )
     else:
         query = f"""
                 SELECT * FROM "Water Balance ET"
@@ -220,17 +212,21 @@ def update_figure(selected_data,selected_date,selected_year,trt_plt, clickData):
         filterdf = df[df['Date'] == dates_test[selected_date]]
         locat="Plot"
     
-        fig = px.choropleth_mapbox(filterdf, 
-                        geojson=geojson,
-                        locations= locat,
-                        featureidkey='properties.TrtmPlotID',
-                        color=col,
-                        range_color=[df[col].min(), df[col].max()],
-                        color_continuous_scale="rdylgn",
-                        mapbox_style="carto-positron",
-                        center = {"lat": 40.4486, "lon": -104.6368},
-                        zoom=16.3
-                        )
+    fig = px.choropleth_mapbox(filterdf, 
+                    geojson=geojson,
+                    locations= locat,
+                    featureidkey='properties.TrtmPlotID',
+                    color=col,
+                    range_color=[df[col].min(), df[col].max()],
+                    color_continuous_scale="rdylgn",
+                    mapbox_style="carto-positron",
+                    center = {"lat": 40.4486, "lon": -104.6368},
+                    zoom=16.8
+                    )
+    # Update layout to reduce padding and margin
+    fig.update_layout(
+        margin={"r":0, "t":0, "l":0, "b":0}
+    )
     fig.update_layout(
         mapbox_layers=[
             {
@@ -257,9 +253,10 @@ def update_figure(selected_data,selected_date,selected_year,trt_plt, clickData):
         Input(component_id='data_select', component_property='value'),
         Input(component_id='year_select', component_property='value'),
         Input(component_id='treatment_select', component_property='value'),
+        Input(component_id='chart', component_property='hoverData')
     ]
 )
-def update_chart(selected_data, selected_year, trt):
+def update_chart(selected_data, selected_year, trt, hoverData):
     if trt == 0:
         query = f"""
                 SELECT * FROM "{selected_data}"
@@ -276,6 +273,22 @@ def update_chart(selected_data, selected_year, trt):
         df = query_db(query)
         col = column_select(selected_data)
         fig = px.line(df, x='Date', y=col, color='Trt_code')
+
+    # Check if there is hover data
+    if hoverData and 'points' in hoverData and len(hoverData['points']) > 0:
+        hovered_trace_index = hoverData['points'][0]['curveNumber']
+        
+        # Update styles based on hover
+        for i, trace in enumerate(fig.data):
+            if i == hovered_trace_index:
+                fig.data[i].update(line=dict(width=4))  # Highlighted line with increased width
+            else:
+                fig.data[i].update(line=dict(width=1))  # Other lines with normal width
+    else:
+        # Reset styles if not hovering
+        for trace in fig.data:
+            trace.update(line=dict(width=2))  # Reset to default width
+
     return fig
 
 @callback(
