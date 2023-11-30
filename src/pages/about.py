@@ -10,7 +10,7 @@ dash.register_page(__name__,
 # About Page information
 layout = html.Div([
     dbc.Row([
-        html.Img(src='assets/IMG_0208.JPG')
+        html.Img(src='assets/IMG_0208.JPG', className='responsive-image')
         ]),
     dcc.Markdown("""
         ## Maize Yield and Water Use Data

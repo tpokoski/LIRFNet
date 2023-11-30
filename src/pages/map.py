@@ -13,7 +13,7 @@ dash.register_page(__name__)
 # Bring in the data
 # -------------------------------------------------------------
 # First the geojson
-with open('modified_LIRF.json') as filepath:
+with open('sorted_LIRF.json') as filepath:
     geojson = json.load(filepath)
 
 # Now bring in a SQLite table as a dataframe
@@ -178,118 +178,6 @@ def update_range(selected_year, selected_data, trt):
     step=None
     return max, marks, step
 
-@callback(
-    Output(component_id='map', component_property='figure'),
-    [
-        Input(component_id='data_select', component_property='value'),
-        Input(component_id='date_slider', component_property='value'),
-        Input(component_id='year_select', component_property='value'),
-        Input(component_id='treatment_select', component_property='value'),
-        Input(component_id='chart', component_property='clickData')
-    ]
-)
-def update_figure(selected_data,selected_date,selected_year,trt_plt, clickData):
-    if trt_plt == 0:
-        query = f"""
-                SELECT * FROM "{selected_data}"
-                WHERE Year = {selected_year}    
-                """
-        df = query_db(query)
-        col = column_select(selected_data)
-        dates_test = df['Date'].drop_duplicates()
-        dates_test = dates_test.tolist()
-        filterdf = df[df['Date'] == dates_test[selected_date]]
-        locat='Plot'
-    else:
-        query = f"""
-                SELECT * FROM "Water Balance ET"
-                WHERE (Year = {selected_year} AND "{selected_data}" IS NOT NULL)    
-                """
-        df = query_db(query)
-        col = column_select(selected_data)
-        dates_test = df['Date'].drop_duplicates()
-        dates_test = dates_test.tolist()
-        filterdf = df[df['Date'] == dates_test[selected_date]]
-        locat="Plot"
-    
-    fig = px.choropleth_mapbox(filterdf, 
-                    geojson=geojson,
-                    locations= locat,
-                    featureidkey='properties.TrtmPlotID',
-                    color=col,
-                    range_color=[df[col].min(), df[col].max()],
-                    color_continuous_scale="rdylgn",
-                    mapbox_style="carto-positron",
-                    center = {"lat": 40.4486, "lon": -104.6368},
-                    zoom=16.8
-                    )
-    # Update layout to reduce padding and margin
-    fig.update_layout(
-        margin={"r":0, "t":0, "l":0, "b":0}
-    )
-    fig.update_layout(
-        mapbox_layers=[
-            {
-                "below": 'traces',
-                "sourcetype": "raster",
-                "sourceattribution": "United States Geological Survey",
-                "source": [
-                    "https://basemap.nationalmap.gov/arcgis/rest/services/USGSImageryOnly/MapServer/tile/{z}/{y}/{x}"
-                ]
-            }
-        ])
-    if clickData is not None:
-        curveNumber = clickData["points"][0]['curveNumber']
-        print(curveNumber)
-        traces = fig['data']
-        fig['data'][curveNumber]['marker']['color'] = "#FFFFFF"
-        return fig
-    else:
-        return fig
-
-@callback(
-    Output(component_id='chart', component_property='figure'),
-    [
-        Input(component_id='data_select', component_property='value'),
-        Input(component_id='year_select', component_property='value'),
-        Input(component_id='treatment_select', component_property='value'),
-        Input(component_id='chart', component_property='hoverData')
-    ]
-)
-def update_chart(selected_data, selected_year, trt, hoverData):
-    if trt == 0:
-        query = f"""
-                SELECT * FROM "{selected_data}"
-                WHERE Year = {selected_year}    
-                """
-        df = query_db(query)
-        col = column_select(selected_data)
-        fig = px.line(df, x='Date', y=col, color='Plot')
-    else:
-        query = f"""
-        SELECT * FROM "Water Balance ET"
-        WHERE (Year = {selected_year} AND "{selected_data}" IS NOT NULL)    
-        """
-        df = query_db(query)
-        col = column_select(selected_data)
-        fig = px.line(df, x='Date', y=col, color='Trt_code')
-
-    # Check if there is hover data
-    if hoverData and 'points' in hoverData and len(hoverData['points']) > 0:
-        hovered_trace_index = hoverData['points'][0]['curveNumber']
-        
-        # Update styles based on hover
-        for i, trace in enumerate(fig.data):
-            if i == hovered_trace_index:
-                fig.data[i].update(line=dict(width=4))  # Highlighted line with increased width
-            else:
-                fig.data[i].update(line=dict(width=1))  # Other lines with normal width
-    else:
-        # Reset styles if not hovering
-        for trace in fig.data:
-            trace.update(line=dict(width=2))  # Reset to default width
-
-    return fig
 
 @callback(
     [
@@ -320,3 +208,138 @@ def update_dropdown(selected_treatment):
         value="SWC_15"
     return options, value
 
+@callback(
+    [
+        Output(component_id='chart', component_property='figure'),
+        Output(component_id='map', component_property='figure')
+    ],
+    [
+        Input(component_id='data_select', component_property='value'),
+        Input(component_id='year_select', component_property='value'),
+        Input(component_id='treatment_select', component_property='value'),
+        Input(component_id='chart', component_property='clickData'),
+        Input(component_id='map', component_property='clickData'),
+        Input(component_id='date_slider', component_property='value')
+    ]
+)
+def update_visualizations(selected_data, selected_year, trt, click_chart, click_map, selected_date):
+    
+
+    # Create or update the choropleth map
+    if trt == 0:
+        query = f"""
+                SELECT * FROM "{selected_data}"
+                WHERE Year = {selected_year}    
+                """
+        df = query_db(query)
+        col = column_select(selected_data)
+        dates_test = df['Date'].drop_duplicates()
+        dates_test = dates_test.tolist()
+        filterdf = df[df['Date'] == dates_test[selected_date]]
+        locat='Plot'
+    else:
+        query = f"""
+                SELECT * FROM "Water Balance ET"
+                WHERE (Year = {selected_year} AND "{selected_data}" IS NOT NULL)    
+                """
+        df = query_db(query)
+        col = column_select(selected_data)
+        dates_test = df['Date'].drop_duplicates()
+        dates_test = dates_test.tolist()
+        filterdf = df[df['Date'] == dates_test[selected_date]]
+        locat="Plot"
+    
+    fig_map = px.choropleth_mapbox(filterdf, 
+                    geojson=geojson,
+                    locations= locat,
+                    featureidkey='properties.TrtmPlotID',
+                    color=col,
+                    range_color=[df[col].min(), df[col].max()],
+                    color_continuous_scale="rdylgn",
+                    mapbox_style="carto-positron",
+                    center = {"lat": 40.4486, "lon": -104.6368},
+                    zoom=16.8
+                    )
+    # Update layout to reduce padding and margin
+    fig_map.update_layout(
+        margin={"r":0, "t":0, "l":0, "b":0}
+    )
+    fig_map.update_layout(
+        mapbox_layers=[
+            {
+                "below": 'traces',
+                "sourcetype": "raster",
+                "sourceattribution": "United States Geological Survey",
+                "source": [
+                    "https://basemap.nationalmap.gov/arcgis/rest/services/USGSImageryOnly/MapServer/tile/{z}/{y}/{x}"
+                ]
+            }
+        ])
+    # Create a mapping from TrtmPlotID to geojson feature index
+# Get a list of TrtmPlotID that are present on the map
+    trtmplotids_on_map = df['Plot'].unique().tolist()
+
+    # Filter the geojson to include only those features present on the map
+    filtered_geojson_features = [feature for feature in geojson['features'] 
+                                if feature['properties']['TrtmPlotID'] in trtmplotids_on_map]
+
+    # Now create the mapping dictionary
+    plot_id_to_index = {feature['properties']['TrtmPlotID']: i 
+                        for i, feature in enumerate(filtered_geojson_features)}
+    plot_lookup = {feature['properties']['TrtmPlotID']: feature for feature in geojson['features']}
+    plot_names = [feature['properties']['TrtmPlotID'] for feature in geojson['features']]
+    sorted_plot = {k: v for v, k in enumerate(sorted(plot_id_to_index.keys()))}
+    # Create or update the line chart
+    if trt == 0:
+        query = f"""
+                SELECT * FROM "{selected_data}"
+                WHERE Year = {selected_year}    
+                """
+        df = query_db(query)
+        col = column_select(selected_data)
+        fig_chart = px.line(df, x='Date', y=col, color='Plot', category_orders=plot_id_to_index)
+    else:
+        query = f"""
+        SELECT * FROM "Water Balance ET"
+        WHERE (Year = {selected_year} AND "{selected_data}" IS NOT NULL)    
+        """
+        df = query_db(query)
+        col = column_select(selected_data)
+        fig_chart = px.line(df, x='Date', y=col, color='Trt_code')
+    
+    # Initialize a list for line colors, default to grey (or another default color)
+    line_colors = ['grey'] * len(fig_map.data[0].geojson['features'])  # Grey color
+
+    # Update choropleth map based on click data
+    if click_chart and 'points' in click_chart and len(click_chart['points']) > 0:
+        
+        clicked_trace_index = click_chart['points'][0]['curveNumber']
+        clicked_plot = fig_chart.data[clicked_trace_index].name
+
+        # Reset all to default color first
+        for i in range(len(line_colors)):
+            line_colors[i] = 'grey'  # Default color
+
+        # Find the index of the geojson feature for the clicked plot
+        if clicked_plot in plot_id_to_index:
+            plot_index = plot_id_to_index[clicked_plot]
+            sorted_index = sorted_plot[clicked_plot]
+            print(plot_index, sorted_index)
+            line_colors[sorted_index] = 'white'  # Highlighted line color
+    else:
+        # Reset map styling if no plot is clicked
+        line_colors = ['grey'] * len(line_colors)
+    
+    # Click-Map isolates the line on the graph
+    if click_map is None:
+        name='None'
+    else:
+        name = click_map['points'][0]['location']
+        fig_chart.update_traces(visible='legendonly')
+        fig_chart.update_traces(visible=True,
+                                selector=dict(name=name))
+
+    
+    # Update the choropleth map styling
+    fig_map.update_traces(marker_line_color=line_colors)
+    return fig_chart, fig_map
